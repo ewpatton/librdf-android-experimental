@@ -3,13 +3,15 @@ package org.librdf.rasqal;
 import java.net.URI;
 
 import org.librdf.exception.QueryException;
-import org.librdf.raptor.RaptorWorld;
 import org.librdf.rasqal.Query.Type;
 import org.librdf.util.StringUtils;
 
+import android.util.Log;
+
 public final class QueryExecutor {
 
-    private static native long executeQuery( RaptorWorld world, byte[] uri,
+    private static final String TAG = QueryExecutor.class.getSimpleName();
+    private static native long executeQuery( RasqalWorld world, byte[] uri,
             long query );
     private static native String[] getMessages();
 
@@ -21,11 +23,12 @@ public final class QueryExecutor {
      * @param query
      * @return
      */
-    public static ResultSet executeSelect( RaptorWorld world, Query query ) {
-        return null;
+    public static ResultSet executeSelect( RasqalWorld world, Query query ) {
+        return executeSelect( world, null, query );
     }
 
-    public static ResultSet executeSelect( RaptorWorld world, URI service, Query query ) {
+    public static ResultSet executeSelect( RasqalWorld world, URI service,
+            Query query ) {
         if ( query.getType() != Type.SELECT ) {
             throw new IllegalArgumentException();
         }
@@ -34,6 +37,7 @@ public final class QueryExecutor {
         if ( result == 0 ) {
             throw new QueryException( getMessages() );
         }
-        return new ResultSet( 0 );
+        Log.i( TAG, "result pointer = " + result );
+        return new ResultSet( result );
     }
 }

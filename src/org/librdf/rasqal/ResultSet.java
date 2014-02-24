@@ -8,8 +8,11 @@ import java.util.NoSuchElementException;
 import org.librdf.shared.Term;
 import org.librdf.shared.Variable;
 
+import android.util.Log;
+
 public final class ResultSet implements Iterable<Binding>, Serializable, Closeable {
     private static final long serialVersionUID = -2242979285438498493L;
+    private static final String TAG = ResultSet.class.getSimpleName();
 
     private long id = 0;
 
@@ -48,7 +51,9 @@ public final class ResultSet implements Iterable<Binding>, Serializable, Closeab
 
         @Override
         public boolean hasNext() {
-            return !isFinished();
+            boolean finished = isFinished();
+            Log.i( TAG, "ResultSet$Iterator.finished = " + finished );
+            return !finished;
         }
 
         @Override

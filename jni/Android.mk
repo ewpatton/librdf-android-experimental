@@ -42,4 +42,5 @@ LOCAL_MODULE    := raptortest
 LOCAL_SRC_FILES := raptortest.c rasqal_native.c
 LOCAL_CFLAGS    := -I.
 LOCAL_STATIC_LIBRARIES := librdf librasqal libraptor2 libpcre libxml2 libglob
+LOCAL_LDLIBS    := -llog
 include $(BUILD_SHARED_LIBRARY)

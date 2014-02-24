@@ -11,6 +11,10 @@ public final class RasqalWorld implements Closeable {
     private static native long newWorld();
     private native void freeWorld();
 
+    static {
+        System.loadLibrary("raptortest");
+    }
+
     public RasqalWorld() {
         world = newWorld();
     }
