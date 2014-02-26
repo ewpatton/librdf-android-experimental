@@ -16,6 +16,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class RasqalTest extends Activity {
 
@@ -26,6 +27,8 @@ public class RasqalTest extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_rasqal_test);
         try {
+            Toast.makeText(this, "Curl test gave " + RasqalWorld.testLibCurl(),
+                    Toast.LENGTH_LONG).show();
             RasqalWorld world = RasqalWorld.getDefaultWorld();
             Log.i( TAG, "Got world" );
             Query query = QueryFactory.createQuery(world,

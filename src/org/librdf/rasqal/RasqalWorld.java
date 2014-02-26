@@ -40,4 +40,6 @@ public final class RasqalWorld implements Closeable {
     long getRawPointer() {
         return world;
     }
+
+    public static native String testLibCurl();
 }

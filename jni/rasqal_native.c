@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <android/log.h>
 #include <rasqal.h>
+#include <curl.h>
+#include <unistd.h>
 #include "org_librdf_rasqal_RasqalWorld.h"
 
 static const char *TAG = "rasqal_native.c";
@@ -131,6 +133,7 @@ JNIEXPORT jlong JNICALL Java_org_librdf_rasqal_QueryExecutor_executeQuery
     rasqal_service *service = NULL;
     raptor_uri *serviceUri = NULL;
     rasqal_query_results *results = NULL;
+    raptor_www *www = NULL;
 
     /* gets the world pointers */
     world = getPointer( env, worldObj, "world" );
@@ -212,7 +215,12 @@ JNIEXPORT jobjectArray JNICALL Java_org_librdf_rasqal_QueryExecutor_getMessages
 /* org.librdf.rasqal.RasqalWorld implementation */
 JNIEXPORT jlong JNICALL Java_org_librdf_rasqal_RasqalWorld_newWorld
   (JNIEnv *env, jclass clazz) {
-  rasqal_world *world = rasqal_new_world();
+  FILE *file = NULL;
+  rasqal_world *world = NULL;
+  file = fopen( "/sdcard/librdf.log", "w" );
+  dup2(fileno(file), STDERR_FILENO);
+  world = rasqal_new_world();
+  rasqal_world_open( world );
   __android_log_write( ANDROID_LOG_DEBUG, TAG, "Setting raptor log adapter");
   rasqal_world_set_log_handler( world, NULL, &raptor_log_to_android_log );
   return (jlong)(uintptr_t) world;
@@ -232,6 +240,10 @@ JNIEXPORT jboolean JNICALL Java_org_librdf_rasqal_ResultSet_isFinished
   if ( results == NULL ) {
     return JNI_TRUE;
   }
+  __android_log_print( ANDROID_LOG_DEBUG, TAG, "result count = %d",
+      rasqal_query_results_get_count( results ) );
+  __android_log_print( ANDROID_LOG_DEBUG, TAG, "rs.finished = %d",
+      rasqal_query_results_finished( results ) );
   return rasqal_query_results_finished( results ) ? JNI_TRUE : JNI_FALSE;
 }
 
@@ -278,4 +290,63 @@ JNIEXPORT jobjectArray JNICALL Java_org_librdf_rasqal_ResultSet_getTerms
 JNIEXPORT void JNICALL Java_org_librdf_rasqal_ResultSet_freeResultSet
   (JNIEnv *env, jobject resultSet) {
   FREE_SHARED_PTR( resultSet, "id", rasqal_free_query_results );
+}
+
+typedef struct stringbuilder_s {
+  char *buffer;
+  int buf_size;
+  int length;
+} stringbuilder;
+
+size_t stringbuilder_append( char *ptr, size_t len, size_t nmemb, void *userdata ) {
+  stringbuilder *builder = (stringbuilder *) userdata;
+  if ( builder->buffer == NULL ) {
+    builder->buffer = (char *) malloc( 1024 );
+    builder->buf_size = 1024;
+    builder->length = 0;
+  }
+  if ( len * nmemb + 1 > builder->buf_size - builder->length ) {
+    /* resize block */
+    char *new_buf = 0;
+    while ( len * nmemb + 1 > builder->buf_size - builder->length ) {
+      builder->buf_size = (int)( (double) builder->buf_size * 1.5 );
+    }
+    new_buf = (char *) malloc( builder->buf_size );
+    memcpy( new_buf, builder->buffer, builder->length );
+    free( builder->buffer );
+    builder->buffer = new_buf;
+  }
+  memcpy( builder->buffer + builder->length, ptr, len * nmemb );
+  builder->length += len * nmemb;
+  builder->buffer[builder->length] = 0;
+  return len * nmemb;
+}
+
+JNIEXPORT jstring JNICALL Java_org_librdf_rasqal_RasqalWorld_testLibCurl
+  (JNIEnv *env, jclass clazz) {
+  CURL *curl;
+  CURLcode res;
+  curl = curl_easy_init();
+  if ( curl ) {
+    long response = 0;
+    stringbuilder *builder;
+    jstring result = NULL;
+    builder = (stringbuilder *) malloc(sizeof(stringbuilder));
+    builder->buffer = malloc( 1024 );
+    memset( builder->buffer, 0, 1024 );
+    builder->buf_size = 1024;
+    builder->length = 0;
+    curl_easy_setopt(curl, CURLOPT_URL, "http://dbpedia.org/sparql?query=SELECT+*%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fp+%3Fo+.%0D%0A%7D%0D%0ALIMIT+10");
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &stringbuilder_append );
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, builder );
+    res = curl_easy_perform(curl);
+    curl_easy_getinfo( curl, CURLINFO_RESPONSE_CODE, &response );
+    curl_easy_cleanup( curl );
+    result = (*env)->NewStringUTF( env, builder->buffer );
+    free( builder->buffer );
+    free( builder );
+    return result;
+  }
+  return NULL;
 }

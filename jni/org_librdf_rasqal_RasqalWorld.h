@@ -23,6 +23,14 @@ JNIEXPORT jlong JNICALL Java_org_librdf_rasqal_RasqalWorld_newWorld
 JNIEXPORT void JNICALL Java_org_librdf_rasqal_RasqalWorld_freeWorld
   (JNIEnv *, jobject);
 
+/*
+ * Class:     org_librdf_rasqal_RasqalWorld
+ * Method:    testLibCurl
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_librdf_rasqal_RasqalWorld_testLibCurl
+  (JNIEnv *env, jclass clazz);
+
 #ifdef __cplusplus
 }
 #endif
